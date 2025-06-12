@@ -1,0 +1,175 @@
+local Player = game.Players.LocalPlayer
+local Character = Player.Character or Player.CharacterAdded:Wait()
+local Humanoid = Character:WaitForChild("Humanoid")
+local RootPart = Character:WaitForChild("HumanoidRootPart")
+local Camera = workspace.CurrentCamera
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+
+local flying = false
+local speed = 100
+local bodyVelocity
+local disconnectRender
+
+local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+local fovFlying = 80
+local fovNormal = 70
+
+local idleAnim = Instance.new("Animation")
+idleAnim.AnimationId = "rbxassetid://17124063826" 
+local flyAnim = Instance.new("Animation")
+flyAnim.AnimationId = "rbxassetid://78547941116306" 
+
+local animator = Humanoid:FindFirstChildOfClass("Animator") or Humanoid:WaitForChild("Animator")
+local idleTrack, flyTrack
+
+local blockedAnimId = "rbxassetid://7815618175"
+
+local function tweenFOV(targetFOV)
+    TweenService:Create(Camera, tweenInfo, {FieldOfView = targetFOV}):Play()
+end
+
+local function stopAnimation(track)
+    if track and track.IsPlaying then
+        track:Stop()
+    end
+end
+
+local function playIdleAnim()
+    if flyTrack then stopAnimation(flyTrack) end
+    if not idleTrack or not idleTrack.IsPlaying then
+        idleTrack = animator:LoadAnimation(idleAnim)
+        idleTrack:Play()
+    end
+end
+
+local function playFlyAnim()
+    if idleTrack then stopAnimation(idleTrack) end
+    if not flyTrack or not flyTrack.IsPlaying then
+        flyTrack = animator:LoadAnimation(flyAnim)
+        flyTrack:Play()
+    end
+end
+
+local function stopAllAnimations()
+    stopAnimation(idleTrack)
+    stopAnimation(flyTrack)
+end
+
+local function monitorBlockedAnimation()
+    Humanoid.AnimationPlayed:Connect(function(track)
+        if flying and track.Animation.AnimationId == blockedAnimId then
+            track:Stop()
+        end
+    end)
+end
+
+local function startFlying()
+    if flying then return end
+    flying = true
+
+    bodyVelocity = Instance.new("BodyVelocity")
+    bodyVelocity.MaxForce = Vector3.new(1e6, 1e6, 1e6)
+    bodyVelocity.Velocity = Vector3.zero
+    bodyVelocity.P = 1e5
+    bodyVelocity.Parent = RootPart
+
+    for _, track in ipairs(animator:GetPlayingAnimationTracks()) do
+        if track.Animation.AnimationId == blockedAnimId then
+            track:Stop()
+        end
+    end
+
+    playIdleAnim()
+    tweenFOV(fovNormal)
+
+    disconnectRender = RunService.RenderStepped:Connect(function()
+        if flying and bodyVelocity and bodyVelocity.Parent then
+            if Humanoid.MoveDirection.Magnitude > 0 then
+                bodyVelocity.Velocity = Camera.CFrame.LookVector * speed
+                RootPart.CFrame = CFrame.new(RootPart.Position, RootPart.Position + Camera.CFrame.LookVector)
+                playFlyAnim()
+                tweenFOV(fovFlying)
+            else
+                bodyVelocity.Velocity = Vector3.zero
+                playIdleAnim()
+                tweenFOV(fovNormal)
+            end
+        end
+    end)
+end
+
+local function stopFlying()
+    if not flying then return end
+    flying = false
+
+    if disconnectRender then
+        disconnectRender:Disconnect()
+        disconnectRender = nil
+    end
+
+    stopAllAnimations()
+
+    if bodyVelocity then
+        bodyVelocity:Destroy()
+        bodyVelocity = nil
+    end
+
+    tweenFOV(fovNormal)
+end
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.Six then
+        if flying then
+            stopFlying()
+        else
+            startFlying()
+        end
+    end
+end)
+
+Humanoid.StateChanged:Connect(function(_, newState)
+    if flying and newState == Enum.HumanoidStateType.Jumping then
+        stopFlying()
+    end
+end)
+
+RootPart.Touched:Connect(function()
+    if flying then
+        stopFlying()
+    end
+end)
+
+monitorBlockedAnimation()
+
+local PlayerGui = Player:WaitForChild("PlayerGui")
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Parent = PlayerGui
+
+local imageButton1 = Instance.new("ImageButton")
+imageButton1.Size = UDim2.new(0, 50, 0, 50)
+imageButton1.Position = UDim2.new(0.5, 200, 0.5, -25) 
+imageButton1.Image = "rbxassetid://18428026508"
+imageButton1.BackgroundTransparency = 1
+imageButton1.Parent = ScreenGui
+
+local imageButton2 = Instance.new("ImageButton")
+imageButton2.Size = UDim2.new(0, 50, 0, 50)
+imageButton2.Position = UDim2.new(0.5, 200, 0.5, -25) 
+imageButton2.Image = "rbxassetid://6256840888"
+imageButton2.BackgroundTransparency = 1
+imageButton2.Parent = ScreenGui
+
+imageButton2.MouseButton1Click:Connect(function()
+    if flying then
+        stopFlying()
+    else
+        startFlying()
+    end
+end)
+
+imageButton1.MouseButton1Click:Connect(function()
+
+end)
