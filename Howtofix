@@ -1,0 +1,184 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+
+local AllowedPlayers = AllowedPlayers or {}
+
+-- Allow everyone if AllowedPlayers is empty; else only allowed UserIds
+if next(AllowedPlayers) and not AllowedPlayers[LocalPlayer.UserId] then
+    return
+end
+
+-- Preload AnimHandler and AltAnim
+local AnimHandler = loadstring(game:HttpGet("https://raw.githubusercontent.com/ProudNamed/SuperLightning/refs/heads/main/AnimModule/MainModule"))()
+local AltAnim = game:GetObjects("rbxassetid://15434683426")[1]
+AltAnim.Parent = workspace
+game:GetService("ContentProvider"):PreloadAsync({AltAnim})
+
+local function playAltAnimation(character)
+    local track = AnimHandler.new(character, AltAnim)
+    track.TimePosition = 9.4
+    track:Play()
+    task.delay(1, function()
+        track:Stop()
+    end)
+end
+
+local targetAnimID = "rbxassetid://10468665991"
+
+local function playShortAnimation(humanoid)
+    local anim = Instance.new("Animation")
+    anim.AnimationId = "rbxassetid://18896127525"
+    local track = humanoid:LoadAnimation(anim)
+    track:Play()
+    task.delay(1, function()
+        track:Stop()
+    end)
+end
+
+-- VFX function, attachToRightLeg boolean decides parent part
+local function playVFX(character, attachToRightLeg)
+    local attachPart = character:WaitForChild("Right Arm") -- default
+
+    if attachToRightLeg then
+        attachPart = character:WaitForChild("Right Leg")
+    end
+
+    local effectPaths = {
+        game.ReplicatedStorage.Emotes.VFX.VfxMods.Flasher.char["Right Arm"]["2"],
+        game.ReplicatedStorage.Emotes.VFX.VfxMods.Flasher.char["Right Arm"]["2"]["1"],
+        game.ReplicatedStorage.Emotes.VFX.VfxMods.Flasher.char["Right Arm"]["2"].Emit2,
+        game.ReplicatedStorage.Emotes.VFX.VfxMods.Flasher.char["Right Arm"]["1"],
+    }
+
+    local clonedEffects = {}
+    for _, effect in ipairs(effectPaths) do
+        local cloned = effect:Clone()
+        cloned.Parent = attachPart
+        table.insert(clonedEffects, cloned)
+        for _, child in ipairs(cloned:GetDescendants()) do
+            if child:IsA("ParticleEmitter") then
+                child:Emit(1)
+            end
+        end
+    end
+
+    task.delay(0.5, function()
+        for _, c in ipairs(clonedEffects) do
+            c:Destroy()
+        end
+    end)
+end
+
+local function playSoundsAndFlash(player)
+    task.spawn(function()
+        wait(0.5)
+
+        local function GetGitSound(GithubSnd, SoundName)
+            local url = GithubSnd
+            if not isfile(SoundName .. ".mp3") then
+                writefile(SoundName .. ".mp3", game:HttpGet(url))
+            end
+            local sound = Instance.new("Sound")
+            sound.SoundId = (getcustomasset or getsynasset)(SoundName .. ".mp3")
+            sound.Volume = 4
+            sound.Name = SoundName
+            sound.RollOffMode = Enum.RollOffMode.Inverse
+            sound.MaxDistance = 50
+            sound.Parent = workspace
+            return sound
+        end
+
+        local sound = GetGitSound(
+            "https://github.com/NetlessScripter/Vegeta/blob/f69548941b7da7cea3406fe52ff642e18fb1ebc8/copy_3045D33D-79BC-4E7A-AAD4-683BEC38379B.mp3?raw=true",
+            "BlackFlash2.0FULLACTUl"
+        )
+        sound:Play()
+
+        local hrp = player.Character:WaitForChild("HumanoidRootPart")
+
+        local part1 = Instance.new("Part")
+        part1.Size = Vector3.new(1,1,1)
+        part1.Anchored = true
+        part1.CanCollide = false
+        part1.Transparency = 1
+        part1.CFrame = hrp.CFrame * CFrame.new(0, 0, -4)
+        part1.Parent = workspace
+
+        local blackFlash = game.ReplicatedStorage.Emotes.VFX.VfxMods.Flasher.vfx.BlackFlashFx.Main:Clone()
+        blackFlash.Parent = part1
+        for _, child in ipairs(blackFlash:GetChildren()) do
+            if child:IsA("ParticleEmitter") then
+                child.Enabled = false
+                child:Emit(15)
+            end
+        end
+
+        local part2 = Instance.new("Part")
+        part2.Size = Vector3.new(1,1,1)
+        part2.Anchored = true
+        part2.CanCollide = false
+        part2.Transparency = 1
+        part2.CFrame = hrp.CFrame * CFrame.new(0, 0, -16)
+        part2.Parent = workspace
+
+        local lastImpact = game.ReplicatedStorage.Emotes.VFX.VfxMods.Flasher.vfx.LastImpactFx.Attachment:Clone()
+        lastImpact.Parent = part2
+        for _, child in ipairs(lastImpact:GetChildren()) do
+            if child:IsA("ParticleEmitter") then
+                child.Enabled = false
+                child:Emit(15)
+            end
+        end
+    end)
+end
+
+local function onAnimationPlayed(animationTrack)
+    if animationTrack.Animation.AnimationId == targetAnimID then
+        animationTrack:Stop()
+
+        local player = LocalPlayer
+        local character = player.Character or player.CharacterAdded:Wait()
+        local humanoid = character:WaitForChild("Humanoid")
+
+        local playedAlt = false
+        if math.random() < 0.5 then
+            playAltAnimation(character)
+            playedAlt = true
+        else
+            playShortAnimation(humanoid)
+        end
+
+        playVFX(character, playedAlt)
+        playSoundsAndFlash(player)
+    end
+end
+
+local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+humanoid.AnimationPlayed:Connect(onAnimationPlayed)
+
+local blockedSoundIds = {
+    ["rbxassetid://10457021115"] = true,
+    ["rbxassetid://7556019578"] = true,
+    ["rbxassetid://3183222154"] = true,
+    ["rbxassetid://10467680476"] = true,
+    ["rbxassetid://12396291040"] = true,
+    ["rbxassetid://12396291503"] = true,
+    ["rbxassetid://4307204452"] = true,
+    ["rbxassetid://4307205188"] = true,
+    ["rbxassetid://3848076724"] = true,
+    ["rbxassetid://7408635465"] = true,
+    ["rbxassetid://12285238428"] = true,
+}
+
+RunService.Heartbeat:Connect(function()
+    local character = LocalPlayer.Character
+    if not character then return end
+
+    for _, sound in ipairs(character:GetDescendants()) do
+        if sound:IsA("Sound") and sound.IsPlaying and blockedSoundIds[sound.SoundId] then
+            sound:Stop()
+        end
+    end
+end)
