@@ -2,10 +2,27 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 
-local AllowedPlayers = AllowedPlayers or {}
+-- Check if AllowedPlayers exists, else empty table
+AllowedPlayers = AllowedPlayers or {}
 
--- Allow everyone if AllowedPlayers is empty; else only allowed UserIds
-if next(AllowedPlayers) and not AllowedPlayers[LocalPlayer.UserId] then
+-- Convert AllowedPlayers from list of NAMES to dictionary of UserIds
+local AllowedUserIds = {}
+for _, playerName in ipairs(AllowedPlayers) do
+    local player = Players:FindFirstChild(playerName)
+    if player then
+        AllowedUserIds[player.UserId] = true
+    else
+        local success, userId = pcall(function()
+            return Players:GetUserIdFromNameAsync(playerName)
+        end)
+        if success then
+            AllowedUserIds[userId] = true
+        end
+    end
+end
+
+-- If AllowedUserIds is not empty and LocalPlayer is not allowed, stop script
+if next(AllowedUserIds) and not AllowedUserIds[LocalPlayer.UserId] then
     return
 end
 
@@ -36,9 +53,8 @@ local function playShortAnimation(humanoid)
     end)
 end
 
--- VFX function, attachToRightLeg boolean decides parent part
 local function playVFX(character, attachToRightLeg)
-    local attachPart = character:WaitForChild("Right Arm") -- default
+    local attachPart = character:WaitForChild("Right Arm")
 
     if attachToRightLeg then
         attachPart = character:WaitForChild("Right Leg")
