@@ -1,32 +1,16 @@
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local LocalPlayer = Players.LocalPlayer
 
--- Check if AllowedPlayers exists, else empty table
-AllowedPlayers = AllowedPlayers or {}
+local AllowedPlayers = AllowedPlayers or {}
 
--- Convert AllowedPlayers from list of NAMES to dictionary of UserIds
-local AllowedUserIds = {}
-for _, playerName in ipairs(AllowedPlayers) do
-    local player = Players:FindFirstChild(playerName)
-    if player then
-        AllowedUserIds[player.UserId] = true
-    else
-        local success, userId = pcall(function()
-            return Players:GetUserIdFromNameAsync(playerName)
-        end)
-        if success then
-            AllowedUserIds[userId] = true
+local function isAllowed(player)
+    for _, name in ipairs(AllowedPlayers) do
+        if player.Name == name then
+            return true
         end
     end
+    return false
 end
 
--- If AllowedUserIds is not empty and LocalPlayer is not allowed, stop script
-if next(AllowedUserIds) and not AllowedUserIds[LocalPlayer.UserId] then
-    return
-end
-
--- Preload AnimHandler and AltAnim
 local AnimHandler = loadstring(game:HttpGet("https://raw.githubusercontent.com/ProudNamed/SuperLightning/refs/heads/main/AnimModule/MainModule"))()
 local AltAnim = game:GetObjects("rbxassetid://15434683426")[1]
 AltAnim.Parent = workspace
@@ -40,8 +24,6 @@ local function playAltAnimation(character)
         track:Stop()
     end)
 end
-
-local targetAnimID = "rbxassetid://10468665991"
 
 local function playShortAnimation(humanoid)
     local anim = Instance.new("Animation")
@@ -149,11 +131,12 @@ local function playSoundsAndFlash(player)
     end)
 end
 
-local function onAnimationPlayed(animationTrack)
-    if animationTrack.Animation.AnimationId == targetAnimID then
+local function onAnimationPlayed(animationTrack, player)
+    if not isAllowed(player) then return end
+
+    if animationTrack.Animation.AnimationId == "rbxassetid://10468665991" then
         animationTrack:Stop()
 
-        local player = LocalPlayer
         local character = player.Character or player.CharacterAdded:Wait()
         local humanoid = character:WaitForChild("Humanoid")
 
@@ -170,31 +153,23 @@ local function onAnimationPlayed(animationTrack)
     end
 end
 
-local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-local humanoid = character:WaitForChild("Humanoid")
-humanoid.AnimationPlayed:Connect(onAnimationPlayed)
-
-local blockedSoundIds = {
-    ["rbxassetid://10457021115"] = true,
-    ["rbxassetid://7556019578"] = true,
-    ["rbxassetid://3183222154"] = true,
-    ["rbxassetid://10467680476"] = true,
-    ["rbxassetid://12396291040"] = true,
-    ["rbxassetid://12396291503"] = true,
-    ["rbxassetid://4307204452"] = true,
-    ["rbxassetid://4307205188"] = true,
-    ["rbxassetid://3848076724"] = true,
-    ["rbxassetid://7408635465"] = true,
-    ["rbxassetid://12285238428"] = true,
-}
-
-RunService.Heartbeat:Connect(function()
-    local character = LocalPlayer.Character
-    if not character then return end
-
-    for _, sound in ipairs(character:GetDescendants()) do
-        if sound:IsA("Sound") and sound.IsPlaying and blockedSoundIds[sound.SoundId] then
-            sound:Stop()
+local function setupPlayer(player)
+    if isAllowed(player) then
+        local function onCharacterAdded(character)
+            local humanoid = character:WaitForChild("Humanoid")
+            humanoid.AnimationPlayed:Connect(function(animationTrack)
+                onAnimationPlayed(animationTrack, player)
+            end)
         end
+        if player.Character then
+            onCharacterAdded(player.Character)
+        end
+        player.CharacterAdded:Connect(onCharacterAdded)
     end
-end)
+end
+
+for _, player in ipairs(Players:GetPlayers()) do
+    setupPlayer(player)
+end
+
+Players.PlayerAdded:Connect(setupPlayer)
