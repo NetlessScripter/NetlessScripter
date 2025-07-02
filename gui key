@@ -1,0 +1,157 @@
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+local validKeys = {
+    ["PERMA-KEY-1234"] = true,
+    ["TEMP-KEY-5678"] = true,
+}
+
+local successSoundId = "rbxassetid://2865228021"
+local failSoundId = "rbxassetid://2865228021"
+
+local Lighting = game:GetService("Lighting")
+local blur = Instance.new("BlurEffect")
+blur.Size = 24
+blur.Name = "SoloLevelingBlur"
+blur.Parent = Lighting
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "SoloLevelingKeyUI"
+gui.ResetOnSpawn = false
+gui.Parent = PlayerGui
+
+local function applyStroke(obj, thickness, color)
+	local stroke = Instance.new("UIStroke")
+	stroke.Thickness = thickness
+	stroke.Color = color
+	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	stroke.Parent = obj
+end
+
+local function createTextEffect(textLabel)
+	local glow = textLabel:Clone()
+	glow.TextColor3 = Color3.fromRGB(0, 150, 255)
+	glow.TextTransparency = 0.5
+	glow.ZIndex = textLabel.ZIndex - 1
+	glow.Position = UDim2.new(0, 0, 0, 0)
+	glow.Parent = textLabel
+end
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 400, 0, 240)
+frame.Position = UDim2.new(0.5, -200, 0.5, -120)
+frame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+frame.BorderSizePixel = 0
+frame.BackgroundTransparency = 0.1
+frame.Name = "KeyFrame"
+frame.Parent = gui
+
+applyStroke(frame, 2, Color3.fromRGB(0, 170, 255))
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 40)
+title.BackgroundTransparency = 1
+title.Text = "Made By Infinite Studios"
+title.TextScaled = true
+title.Font = Enum.Font.GothamBlack
+title.TextColor3 = Color3.fromRGB(0, 200, 255)
+title.ZIndex = 2
+title.Parent = frame
+createTextEffect(title)
+
+local textbox = Instance.new("TextBox")
+textbox.PlaceholderText = "Type your key here..."
+textbox.Size = UDim2.new(0.9, 0, 0, 50)
+textbox.Position = UDim2.new(0.05, 0, 0.3, 0)
+textbox.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+textbox.TextColor3 = Color3.fromRGB(255, 255, 255)
+textbox.TextScaled = true
+textbox.Font = Enum.Font.Gotham
+textbox.ClearTextOnFocus = false
+textbox.Text = ""
+textbox.Parent = frame
+
+applyStroke(textbox, 1.5, Color3.fromRGB(0, 150, 255))
+Instance.new("UICorner", textbox).CornerRadius = UDim.new(0, 8)
+
+local button = Instance.new("TextButton")
+button.Text = "Check Key"
+button.Size = UDim2.new(0.9, 0, 0, 45)
+button.Position = UDim2.new(0.05, 0, 0.6, 0)
+button.BackgroundColor3 = Color3.fromRGB(0, 120, 200)
+button.TextScaled = true
+button.TextColor3 = Color3.fromRGB(255, 255, 255)
+button.Font = Enum.Font.GothamBold
+button.Parent = frame
+
+applyStroke(button, 2, Color3.fromRGB(255, 255, 255))
+Instance.new("UICorner", button).CornerRadius = UDim.new(0, 8)
+
+local discord = Instance.new("TextButton")
+discord.Text = "Discord"
+discord.Size = UDim2.new(0.9, 0, 0, 35)
+discord.Position = UDim2.new(0.05, 0, 0.82, 0)
+discord.BackgroundColor3 = Color3.fromRGB(60, 60, 90)
+discord.TextScaled = true
+discord.TextColor3 = Color3.fromRGB(255, 255, 255)
+discord.Font = Enum.Font.GothamMedium
+discord.Parent = frame
+
+applyStroke(discord, 1.5, Color3.fromRGB(114, 137, 218))
+Instance.new("UICorner", discord).CornerRadius = UDim.new(0, 8)
+
+discord.MouseButton1Click:Connect(function()
+	setclipboard("https://discord.gg/EdmHHmEsEb")
+end)
+
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Size = UDim2.new(0.9, 0, 0, 30)
+statusLabel.Position = UDim2.new(0.05, 0, 0.5, 50)
+statusLabel.BackgroundTransparency = 1
+statusLabel.Text = ""
+statusLabel.Font = Enum.Font.GothamItalic
+statusLabel.TextSize = 18
+statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+statusLabel.Parent = frame
+
+local function playSound(id)
+	local s = Instance.new("Sound")
+	s.SoundId = id
+	s.Volume = 2
+	s.Parent = workspace
+	s:Play()
+	game.Debris:AddItem(s, 3)
+end
+
+local function validateKey(key)
+	if validKeys[key] then
+		playSound(successSoundId)
+		statusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+		statusLabel.Text = "Key valid! Access granted."
+
+		game.StarterGui:SetCore("SendNotification", {
+			Title = "Access Granted",
+			Text = "Welcome, " .. LocalPlayer.Name .. ".",
+			Duration = 4
+		})
+
+		wait(2)
+		gui:Destroy()
+		if blur then blur:Destroy() end
+
+		-- place your success code here
+
+	else
+		playSound(failSoundId)
+		statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+		statusLabel.Text = "Invalid key."
+
+		textbox.Text = ""
+	end
+end
+
+button.MouseButton1Click:Connect(function()
+	validateKey(textbox.Text)
+end)
