@@ -1,0 +1,748 @@
+shared.AnimEvent = function(v1)
+    local v2 = game.Players.LocalPlayer
+    local v3 = v2.Character or v2.CharacterAdded:Wait()
+    local v4 = v3:WaitForChild("Humanoid")
+    local v5 = v4:FindFirstChildOfClass("Animator") or Instance.new("Animator", v4)
+    for _, v6 in ipairs(v5:GetPlayingAnimationTracks()) do
+        v6:Stop()
+    end
+    local v7 = Instance.new("Animation")
+    v7.AnimationId = "rbxassetid://" .. tostring(v1.Anim)
+    local v8 = v5:LoadAnimation(v7)
+    v8:Play()
+    v8.TimePosition = v1.TimePos or 0
+    v8:AdjustSpeed(v1.Speed or 1)
+    return v8
+end
+
+--[[ REUSABLE IDENTIFIERS ]]--
+local function v787() --[[ Line: 4026 ]]
+        -- upvalues: v785 (ref), v783 (ref), v784 (ref), v782 (copy), v779 (copy), v786 (copy)
+        while v785 do
+            v783 = v783 + v784;
+            while v782 <= v783 do
+                v779(v786);
+                v783 = v783 - v782;
+                if not v785 then
+                    break;
+                end;
+            end;
+            v784 = game:GetService("RunService").RenderStepped:Wait();
+        end;
+    end;
+if not v781 then
+    task.spawn(v787);
+else
+    v787();
+end;
+shared.loop = v787;
+
+shared.SetCore = function(state)
+    for _, v in ipairs(Enum.CoreGuiType:GetEnumItems()) do
+        pcall(function()
+            StarterGui:SetCoreGuiEnabled(v, not state);
+        end);
+    end;
+    pcall(function()
+        StarterGui:SetCore("ResetButtonCallback", not state);
+    end);
+end;
+
+local v9 = game:service("CollectionService");
+local v10 = game:service("TweenService");
+local _ = game:GetService("PhysicsService");
+local v12 = nil;
+local v13 = {};
+local _ = {};
+local v15 = require(game.ReplicatedStorage.Info);
+local v16 = require(game.ReplicatedStorage.Util);
+local v17 = require(game.ReplicatedStorage.MeshFlipbooks);
+local l_Cutscenes_0 = game.ReplicatedStorage.Cutscenes;
+
+local function v321(v315) --[[ Line: 2178 ]]
+        -- upvalues: v9 (copy)
+        local l_Sound_0 = Instance.new("Sound");
+        l_Sound_0.SoundGroup = game:GetService("SoundService").Sounds;
+        v9:AddTag(l_Sound_0, "NewSound");
+        if v315.AddTo then
+            table.insert(v315.AddTo, l_Sound_0);
+            v315.AddTo = nil;
+        end;
+        local v317 = nil;
+        local v318 = nil;
+        v318 = l_Sound_0.Ended:Connect(function() --[[ Line: 2189 ]]
+            -- upvalues: l_Sound_0 (copy), v317 (ref), v318 (ref)
+            if l_Sound_0 then
+                l_Sound_0:Destroy();
+            end;
+            if v317 then
+                v317:Destroy();
+            end;
+            return v318:Disconnect();
+        end);
+        if not v315.RollOffMaxDistance then
+            v315.RollOffMaxDistance = 300;
+        end;
+        if v315.CFrame then
+            v317 = Instance.new("Attachment");
+            v317.Parent = workspace.Terrain;
+            v317.WorldCFrame = v315.CFrame;
+            v315.Parent = v317;
+        end;
+        v315.CFrame = nil;
+        for v319, v320 in pairs(v315) do
+            l_Sound_0[v319] = v320;
+        end;
+        return l_Sound_0, v317;
+end;
+shared.sfx = v321;
+
+local l_LocalPlayer_0 = game.Players.LocalPlayer;
+local v1101 = {};
+v1101.char = l_LocalPlayer_0.Character or l_LocalPlayer_0.CharacterAdded:Wait();
+v1101.Hit = v1101.char;
+v1101.hit = v1101.char;
+v1101.Character = v1101.char;
+v1101.Char = v1101.char;
+v1101.Target = v1101.char
+
+local l_Debris_0 = game:GetService("Debris");
+local l_TouchEnabled_0 = game:GetService("UserInputService").TouchEnabled;
+local l_LegacyReplication_0 = game.ReplicatedStorage.Resources.LegacyReplication;
+
+shared.resizeparticle = function(v848, v849, v850) --[[ Line: 4237 ]]
+    local v851 = v850 or "Size";
+    if v851 == "Speed" then
+        v848.Speed = NumberRange.new(v848.Speed.Min * v849, v848.Speed.Max * v849);
+        return;
+    else
+        for _, v853 in pairs({v848}) do
+            local v854 = {};
+            for _, v856 in pairs(v853[v851].Keypoints) do
+                table.insert(v854, NumberSequenceKeypoint.new(v856.Time, v856.Value * v849, v856.Envelope));
+            end;
+            v853[v851] = NumberSequence.new(v854);
+        end;
+        return;
+    end;
+end;
+
+local function v891(v857, v858) --[[ Line: 4246 ]]
+    if typeof(v857) == "Instance" then
+        v857 = v857:GetDescendants();
+    end;
+    if not v858 then
+        v858 = CFrame.new();
+    end;
+    local l_abs_0 = math.abs;
+    local v860 = 1e999;
+    local v861 = 1e999;
+    local v862 = 1e999;
+    local v863 = -1e999;
+    local v864 = -1e999;
+    local v865 = -1e999;
+    for _, v867 in pairs(v857) do
+        if v867:IsA("BasePart") then
+            local v868 = v858:ToObjectSpace(v867.CFrame);
+            local l_Size_0 = v867.Size;
+            local l_X_0 = l_Size_0.X;
+            local l_Y_1 = l_Size_0.Y;
+            local l_Z_0 = l_Size_0.Z;
+            local v873, v874, v875, v876, v877, v878, v879, v880, v881, v882, v883, v884 = v868:components();
+            local v885 = 0.5 * (l_abs_0(v876) * l_X_0 + l_abs_0(v877) * l_Y_1 + l_abs_0(v878) * l_Z_0);
+            local v886 = 0.5 * (l_abs_0(v879) * l_X_0 + l_abs_0(v880) * l_Y_1 + l_abs_0(v881) * l_Z_0);
+            local v887 = 0.5 * (l_abs_0(v882) * l_X_0 + l_abs_0(v883) * l_Y_1 + l_abs_0(v884) * l_Z_0);
+            if v873 - v885 < v860 then
+                v860 = v873 - v885;
+            end;
+            if v874 - v886 < v861 then
+                v861 = v874 - v886;
+            end;
+            if v875 - v887 < v862 then
+                v862 = v875 - v887;
+            end;
+            if v863 < v873 + v885 then
+                v863 = v873 + v885;
+            end;
+            if v864 < v874 + v886 then
+                v864 = v874 + v886;
+            end;
+            if v865 < v875 + v887 then
+                v865 = v875 + v887;
+            end;
+        end;
+    end;
+    local v888 = Vector3.new(v860, v861, v862);
+    local v889 = Vector3.new(v863, v864, v865);
+    local v890 = (v889 + v888) / 2;
+    return v858 - v858.p + v858:PointToWorldSpace(v890), v889 - v888;
+end;
+local function v1069(folder, outputTable, limit)
+    outputTable = outputTable or {};
+    limit = limit or #folder:GetChildren();
+    local count = 0;
+    for _, v4038 in ipairs(folder:GetChildren()) do
+        table.insert(outputTable, v4038);
+        count = count + 1;
+        if count >= limit then
+            break;
+        end;
+    end;
+    return outputTable;
+end;
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local Debris = game:GetService("Debris")
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+local CollectionService = game:GetService("CollectionService")
+local SoundService = game:GetService("SoundService")
+
+shared.sfx = function(props)
+	local s = Instance.new("Sound")
+	local anchor
+	if props.CFrame and not props.Parent then
+		anchor = Instance.new("Part")
+		anchor.Name = "SoundAnchor"
+		anchor.Anchored = true
+		anchor.CanCollide = false
+		anchor.Transparency = 1
+		anchor.Size = Vector3.new(0.2, 0.2, 0.2)
+		anchor.CFrame = props.CFrame
+		anchor.Parent = Workspace
+		s.Parent = anchor
+	else
+		s.Parent = props.Parent or Workspace
+	end
+	s.RollOffMaxDistance = props.RollOffMaxDistance or 300
+	for k,v in pairs(props) do
+		if k ~= "CFrame" and k ~= "Parent" and k ~= "AddTo" and k ~= "RollOffMaxDistance" then
+			pcall(function() s[k] = v end)
+		end
+	end
+	local ended; ended = s.Ended:Connect(function()
+		if s then pcall(function() s:Destroy() end) end
+		if anchor then pcall(function() anchor:Destroy() end) end
+		if ended then pcall(function() ended:Disconnect() end) end
+	end)
+	return s, anchor
+end
+
+local lp = Players.LocalPlayer
+local char = lp and (lp.Character or lp.CharacterAdded:Wait()) or nil
+if not char then
+	repeat
+		task.wait()
+		lp = Players.LocalPlayer
+		char = lp and (lp.Character or lp.CharacterAdded:Wait()) or nil
+	until char
+end
+local root = char:WaitForChild("HumanoidRootPart")
+local humanoid = char:FindFirstChildOfClass("Humanoid") or char:WaitForChild("Humanoid")
+local v1101 = {}
+v1101.char = char
+v1101.Hit = char
+v1101.Root = root
+v1101.Part = root
+v1101.CFrame = root.CFrame
+v1101.Seed = v1101.Seed or math.random(1, 2000000000)
+v1101.NoParticles = v1101.NoParticles or false
+v1101.Spread = v1101.Spread or 2.25
+v1101.Times = v1101.Times or 0
+v1101.Serious = v1101.Serious or false
+v1101.SuperSerious = v1101.SuperSerious or false
+
+local function safeDestroy(inst)
+	if inst and inst.Parent then
+		pcall(function() inst:Destroy() end)
+	end
+end
+
+local function createPart(opts)
+	local p = Instance.new("Part")
+	p.Name = opts.Name or "Part"
+	p.Anchored = opts.Anchored == nil and true or opts.Anchored
+	p.CanCollide = opts.CanCollide == nil and false or opts.CanCollide
+	p.Transparency = opts.Transparency or 0
+	p.Size = opts.Size or Vector3.new(1,1,1)
+	if opts.CFrame then p.CFrame = opts.CFrame end
+	if opts.Material then p.Material = opts.Material end
+	if opts.Color then p.Color = opts.Color end
+	p.Parent = opts.Parent or Workspace
+	return p
+end
+
+local function createAttachmentAt(cframe)
+	local a = Instance.new("Attachment")
+	a.Parent = Workspace:FindFirstChild("Terrain") or Workspace
+	a.WorldCFrame = cframe
+	return a
+end
+
+local function playSfxProps(props)
+	local s, anchor = shared.sfx(props)
+	if s and s.Play then
+		pcall(function() s:Play() end)
+	end
+	return s, anchor
+end
+
+local function createTween(instance, info, props)
+	local ok, t = pcall(function() return TweenService:Create(instance, info, props) end)
+	if ok and t then
+		pcall(function() t:Play() end)
+		return t
+	end
+	return nil
+end
+
+local function scheduleDestroy(instance, delayTime)
+	if not instance then return end
+	task.delay(delayTime or 0, function()
+		if instance and instance.Parent then
+			pcall(function() instance:Destroy() end)
+		end
+	end)
+end
+
+local function randRange(rng, a, b)
+	local ok, v = pcall(function() return rng:NextNumber(a, b) end)
+	if ok and v then return v end
+	return a
+end
+
+local function applyRotationRandom(p, rng)
+	local rx = math.rad(randRange(rng, -360, 360))
+	local ry = math.rad(randRange(rng, -360, 360))
+	local rz = math.rad(randRange(rng, -360, 360))
+	p.CFrame = p.CFrame * CFrame.Angles(rx, ry, rz)
+end
+
+local function createDebrisPiece(originCFrame, i, sideSign, rng, params)
+	local sizeX = randRange(rng, 0.75, 1)
+	local sizeY = randRange(rng, 0.75, 1)
+	local sizeZ = randRange(rng, 0.75, 1)
+	local denom = rng:NextNumber(2, 3)
+	local sizeMul = (i / denom)
+	if params.SuperSerious then sizeMul = sizeMul * 8 end
+	local sz = Vector3.new(sizeX, sizeY, sizeZ) * sizeMul
+	local baseDist = randRange(rng, 3.75, 4.25)
+	if params.SuperSerious then baseDist = baseDist * 3.5 end
+	local base = originCFrame + originCFrame.LookVector * (i * baseDist)
+	local lateralDiv = params.SuperSerious and 1 or randRange(rng, 3, 4)
+	local lateralOffset = sideSign * (params.Spread or 2.25) * (i / lateralDiv)
+	local cf = CFrame.new(base.Position) * CFrame.new(lateralOffset, 0, 0)
+	local rayOrigin = cf.Position + Vector3.new(0, 5, 0)
+	local rayDir = Vector3.new(0, -50, 0)
+	local rcParams = RaycastParams.new()
+	rcParams.FilterDescendantsInstances = {char}
+	rcParams.FilterType = Enum.RaycastFilterType.Blacklist
+	local hit = Workspace:Raycast(rayOrigin, rayDir, rcParams)
+	if not hit then return nil end
+	local p = createPart({
+		Name = "Debris",
+		Anchored = true,
+		CanCollide = true,
+		Transparency = 1,
+		Size = sz,
+		CFrame = CFrame.new(cf.Position.X, hit.Position.Y, cf.Position.Z),
+		Parent = Workspace
+	})
+	local rot = CFrame.Angles(math.rad(randRange(rng, -360, 360)), math.rad(randRange(rng, -360, 360)), math.rad(randRange(rng, -360, 360)))
+	local targetCF = p.CFrame * rot
+	local downCF = targetCF - Vector3.new(0, 5, 0)
+	p.Material = hit.Material
+	if hit.Instance and hit.Instance:IsA("BasePart") then
+		p.Color = hit.Instance.Color
+	end
+	p.Parent = Workspace
+	createTween(p, TweenInfo.new(0.125, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {CFrame = targetCF})
+	return {
+		part = p,
+		target = targetCF,
+		down = downCF,
+		hit = hit
+	}
+end
+
+local function handleSeriousDebris(pieceData, i, rng, params)
+	if not pieceData or not pieceData.part then return end
+	local p = pieceData.part
+	local hit = pieceData.hit
+	if not hit then safeDestroy(p); return end
+	local flyChance = math.random(1,3)
+	if params.Serious and flyChance == 1 then
+		local fly = createPart({
+			Name = "DebrisFly",
+			Anchored = false,
+			CanCollide = false,
+			Transparency = 0,
+			Size = Vector3.new(1,1,1) * (i / randRange(rng, 5,7)),
+			CFrame = p.CFrame,
+			Parent = Workspace
+		})
+		fly.Material = hit.Material
+		if hit.Instance and hit.Instance:IsA("BasePart") then fly.Color = hit.Instance.Color end
+		local bv = Instance.new("BodyVelocity")
+		bv.MaxForce = Vector3.new(40000,40000,40000)
+		local vx = randRange(rng, -9, 9)
+		local vy = randRange(rng, 10, 55)
+		local vz = randRange(rng, -9, 9)
+		if params.Serious then
+			vx = vx * 3
+			vy = vy * 3
+			vz = vz * 3
+		end
+		bv.Velocity = Vector3.new(vx, vy, vz)
+		bv.Parent = fly
+		Debris:AddItem(bv, 0.15)
+		Debris:AddItem(fly, 10)
+		task.delay(randRange(rng, 0.3, 0.6), function()
+			playSfxProps({
+				SoundId = "rbxassetid://3848076724",
+				Volume = 2,
+				Parent = fly,
+				RollOffMaxDistance = 455,
+				PlaybackSpeed = 1.3
+			}):Play()
+		end)
+		task.delay(randRange(rng, 5, 6), function()
+			createTween(fly, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Transparency = 1})
+		end)
+	end
+end
+
+local function DebrisLine(params)
+	params = params or {}
+	local origin = (v1101.Part and v1101.Part.CFrame or v1101.CFrame)
+	origin = origin + origin.LookVector * 1.793
+	local rngSeed = params.Seed or v1101.Seed or math.random(1,2000000000)
+	local rng = Random.new(rngSeed)
+	local anchor = createPart({Name = "DebrisLineAnchor", Anchored = true, CanCollide = false, Transparency = 1, CFrame = origin, Parent = Workspace})
+	if not params.NoParticles then
+		for _ = 1, 2 do
+			playSfxProps({
+				SoundId = "rbxassetid://7556019578",
+				Volume = 4,
+				Parent = anchor,
+				RollOffMaxDistance = 455
+			})
+		end
+	end
+	createTween(anchor, TweenInfo.new(0.75, Enum.EasingStyle.Linear, Enum.EasingDirection.Out), {CFrame = origin + origin.LookVector * 75})
+	Debris:AddItem(anchor, 6)
+	local stepsStart = 1
+	local stepsEnd = 20
+	local stepsExtra = params.Times or 0
+	local steps = stepsEnd + stepsExtra
+	local spreadBase = params.Spread or 2.25
+	local serious = params.Serious or false
+	local superSerious = params.SuperSerious or false
+	local pieces = {}
+	local piecesFly = {}
+	for i = stepsStart, steps do
+		for side = 1, 2 do
+			local sideSign = (side == 1) and 1 or -1
+			if side == 1 and i % 2 == 1 then
+				if not params.NoParticles then
+					local attach = createAttachmentAt(origin + origin.LookVector * (i * 3.6))
+					attach.WorldCFrame = CFrame.new(attach.WorldCFrame.p, origin.p)
+					local emitter = Instance.new("ParticleEmitter")
+					emitter.Size = NumberSequence.new({NumberSequenceKeypoint.new(0,1,0)})
+					emitter.Parent = attach
+					task.delay(0, function()
+						emitter:Emit(math.floor(randRange(rng,2,4)))
+						task.delay(0.5, function() safeDestroy(attach) end)
+					end)
+				end
+			end
+			local piece = createDebrisPiece(origin, i, sideSign, rng, {Spread = spreadBase, Serious = serious, SuperSerious = superSerious})
+			if piece then
+				table.insert(pieces, piece)
+				if serious or (side == 1) then
+					pcall(function()
+						task.delay(randRange(rng, 0.01, 0.1), function()
+							handleSeriousDebris(piece, i, rng, {Serious = serious, SuperSerious = superSerious})
+						end)
+					end)
+				end
+				Debris:AddItem(piece.part, 12)
+				task.delay(randRange(rng, 6,7), function()
+					local t = superSerious and 5.5 or (serious and 5.5 or 1)
+					createTween(piece.part, TweenInfo.new(t, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {CFrame = piece.down})
+					task.delay(t, function() safeDestroy(piece.part) end)
+				end)
+			end
+		end
+		if not superSerious or i % 2 == 0 then
+			task.wait()
+		end
+	end
+	return pieces
+end
+
+local function DebrisLineVariantA(p)
+	return DebrisLine(p or {})
+end
+
+local function DebrisLineVariantB(p)
+	local newp = {}
+	for k,v in pairs(p or {}) do newp[k]=v end
+	newp.Seed = newp.Seed or math.random(1,2000000000)
+	newp.Times = (newp.Times or 0) + 2
+	return DebrisLine(newp)
+end
+
+local function DebrisLineVariantC(p)
+	local newp = {}
+	for k,v in pairs(p or {}) do newp[k]=v end
+	newp.Spread = (newp.Spread or 2.25) * 1.15
+	return DebrisLine(newp)
+end
+
+local function DebrisLineRepeat(p, times)
+	times = math.max(1, math.floor(times or 1))
+	local results = {}
+	for i = 1, times do
+		local r = DebrisLine(p or {})
+		table.insert(results, r)
+		task.wait(0.05)
+	end
+	return results
+end
+
+local function CreateSoundBurst(anchorCFrame, idList, rng)
+	for i = 1, #idList do
+		playSfxProps({
+			SoundId = idList[i],
+			Volume = 3,
+			Parent = createPart({Name="SfxAnchor", Anchored=true, CanCollide=false, Transparency=1, CFrame = anchorCFrame, Parent = Workspace}),
+			RollOffMaxDistance = 455
+		})
+	end
+end
+
+local function MakeLegacySmoke(targetPart, color, sizeMul, rng)
+	if not targetPart then return end
+	local emm = Instance.new("ParticleEmitter")
+	emm.Size = NumberSequence.new({NumberSequenceKeypoint.new(0, 1 * (sizeMul or 1), 0)})
+	emm.Color = ColorSequence.new(color or Color3.new(1,1,1))
+	emm.Parent = targetPart
+	task.delay(0.01, function() emm:Emit(2) end)
+	scheduleDestroy(emm, 6)
+end
+
+local function SpawnCluster(originCFrame, count, rng)
+	local created = {}
+	for i = 1, count do
+		local p = createPart({Name="ClusterPiece", Anchored=true, CanCollide=false, Transparency=0, Size=Vector3.new(1,1,1), CFrame = originCFrame + Vector3.new(i,0,0)})
+		table.insert(created, p)
+		Debris:AddItem(p, 8)
+		task.delay(0.05, function() createTween(p, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Transparency = 1}) end)
+	end
+	return created
+end
+
+local function SafeRayCheck(origin, dir, blacklist)
+	local rc = RaycastParams.new()
+	rc.FilterDescendantsInstances = blacklist or {}
+	rc.FilterType = Enum.RaycastFilterType.Blacklist
+	return Workspace:Raycast(origin, dir, rc)
+end
+
+local function PlayImpactSoundsOnParts(parts, rng)
+	for _,p in ipairs(parts or {}) do
+		if p and p.Parent then
+			playSfxProps({
+				SoundId = ({
+					"rbxassetid://3848076724",
+					"rbxassetid://3848078820",
+					"rbxassetid://7556019578"
+				})[math.random(1,3)],
+				Volume = 2,
+				Parent = p,
+				RollOffMaxDistance = 455
+			})
+		end
+	end
+end
+
+local function DebrisLineSafeCall(p)
+	local ok, res = pcall(function() return DebrisLine(p or {}) end)
+	if ok then return res end
+	return nil
+end
+
+local function DebrisLineChain(listOfParams)
+	local results = {}
+	for i,p in ipairs(listOfParams or {}) do
+		local r = DebrisLineSafeCall(p)
+		table.insert(results, r)
+		task.wait(0.03)
+	end
+	return results
+end
+
+local function FillWorkspaceThrownFolder()
+	if not Workspace:FindFirstChild("Thrown") then
+		local folder = Instance.new("Folder")
+		folder.Name = "Thrown"
+		folder.Parent = Workspace
+	end
+end
+
+FillWorkspaceThrownFolder()
+
+local function AttachLegacyEffect(cf)
+	local a = createAttachmentAt(cf)
+	local emitter = Instance.new("ParticleEmitter")
+	emitter.Rate = 0
+	emitter.Lifetime = NumberRange.new(0.5,1)
+	emitter.Parent = a
+	task.delay(0.01, function() emitter:Emit(3) end)
+	scheduleDestroy(a, 6)
+end
+
+local function BurstAtRoot()
+	local cf = v1101.Part and v1101.Part.CFrame or v1101.CFrame
+	AttachLegacyEffect(cf)
+	playSfxProps({SoundId="rbxassetid://7556019578", Volume=4, Parent=createPart({Anchored=true, CanCollide=false, Transparency=1, CFrame=cf, Parent=Workspace}), RollOffMaxDistance=455})
+end
+
+local function QuickTest()
+	local cf = v1101.Part and v1101.Part.CFrame or v1101.CFrame
+	DebrisLine({Seed = math.random(1,2000000000), Times = 0, Spread = 2.25, Serious = true})
+	SpawnCluster(cf, 3, Random.new())
+	PlayImpactSoundsOnParts({createPart({Anchored=true,CanCollide=false,Transparency=1,CFrame=cf,Parent=Workspace})}, Random.new())
+end
+
+local function RepeatDemo(n)
+	for i=1, math.max(1,n or 1) do
+		DebrisLine({Seed = math.random(1,2000000000), Times = 1, Spread = 2.25 + i*0.1})
+		task.wait(0.05)
+	end
+end
+
+local function FloodDebrisLines(n)
+	for i=1, math.max(1,n or 1) do
+		DebrisLineVariantB({Seed=math.random(1,2000000000), Times = i%3})
+		task.wait(0.02)
+	end
+end
+
+local function MakeSoundShower(count)
+	local cf = v1101.Part and v1101.Part.CFrame or v1101.CFrame
+	for i=1, math.max(1, count or 1) do
+		playSfxProps({SoundId="rbxassetid://7556019578", Volume=4, Parent=createPart({Anchored=true,CanCollide=false,Transparency=1,CFrame=cf,Parent=Workspace}), RollOffMaxDistance=455})
+	end
+end
+
+local function ControlledDestruction(list)
+	for _,obj in ipairs(list or {}) do
+		task.delay(0.1, function() safeDestroy(obj) end)
+	end
+end
+
+local function MakeMassDebrisWave(waves)
+	for w=1, math.max(1,waves or 1) do
+		DebrisLine({Seed=math.random(1,2000000000), Times = w, Spread = 2.25})
+		task.wait(0.04)
+	end
+end
+
+local function SpawnAndFadePart(cframe)
+	local p = createPart({Name="TempFade", Anchored=true, CanCollide=false, Transparency=0, Size=Vector3.new(2,2,2), CFrame=cframe, Parent=Workspace})
+	createTween(p, TweenInfo.new(0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Transparency=1})
+	Debris:AddItem(p, 1)
+	return p
+end
+
+local function RandomizedBurst(amount)
+	for i=1, math.max(1, amount or 1) do
+		local cf = (v1101.Part and v1101.Part.CFrame or v1101.CFrame) + Vector3.new(math.random(-5,5), math.random(-2,2), math.random(-5,5))
+		DebrisLine({Seed=math.random(1,2000000000), Times = math.random(0,2), Spread = randRange(Random.new(), 1.5, 3)})
+		task.wait(0.02)
+	end
+end
+
+local function CleanThrownFolder()
+	local folder = Workspace:FindFirstChild("Thrown")
+	if folder then
+		for _,c in pairs(folder:GetChildren()) do
+			if c:IsA("BasePart") or c:IsA("Folder") then
+				pcall(function() c:Destroy() end)
+			end
+		end
+	end
+end
+
+local function QuickClear()
+	CleanThrownFolder()
+	for _,inst in ipairs(Workspace:GetDescendants()) do
+		if inst.Name == "Debris" or inst.Name == "DebrisFly" then
+			pcall(function() inst:Destroy() end)
+		end
+	end
+end
+
+local function SpawnWaveAndClear(n)
+	MakeMassDebrisWave(n or 1)
+	task.delay(6, function() QuickClear() end)
+end
+
+local function ExampleUsageDebrisLine()
+	local params = {
+		Seed = math.random(1,2000000000),
+		Times = 0,
+		Spread = 2.25,
+		Serious = true,
+		SuperSerious = false,
+		NoParticles = false
+	}
+	return DebrisLine(params)
+end
+
+local function ExampleSequence()
+	local a = ExampleUsageDebrisLine()
+	task.wait(0.2)
+	local b = DebrisLineVariantC({Times = 1, Spread = 2.5})
+	task.wait(0.2)
+	local c = DebrisLineRepeat({Spread=2.5}, 2)
+	return {a,b,c}
+end
+
+local function ListenForTrigger()
+	local remote = Instance.new("BindableEvent")
+	remote.Name = "DebrisLineTrigger"
+	remote.Parent = shared
+	remote.Event:Connect(function(p)
+		pcall(function() DebrisLine(p or {}) end)
+	end)
+end
+
+ListenForTrigger()
+
+return {
+	DebrisLine = DebrisLine,
+	DebrisLineA = DebrisLineVariantA,
+	DebrisLineB = DebrisLineVariantB,
+	DebrisLineC = DebrisLineVariantC,
+	DebrisLineRepeat = DebrisLineRepeat,
+	ExampleUsage = ExampleUsageDebrisLine,
+	ExampleSequence = ExampleSequence,
+	QuickTest = QuickTest,
+	SpawnCluster = SpawnCluster,
+	PlayImpactSoundsOnParts = PlayImpactSoundsOnParts,
+	FillWorkspaceThrownFolder = FillWorkspaceThrownFolder,
+	CleanThrownFolder = CleanThrownFolder,
+	MakeMassDebrisWave = MakeMassDebrisWave
+}
+shared.DebrisLine({
+    Part = root,
+    Times = 8,
+    Spread = 3,
+    Serious = true,
+    SuperSerious = true,
+    Seed = 1594344674.359466
+})
